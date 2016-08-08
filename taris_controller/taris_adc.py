@@ -9,7 +9,7 @@ class Taris_ADC():
 
     def setupADC(self):
         # Configure ADC for Adafruit's ADS1115 chip
-        print "ADS1115@:" + str(self.adc_address)
+        #print "ADS1115@:" + str(self.adc_address)
         self.adc = Adafruit_ADS1x15.ADS1115(address=self.adc_address, busnum=self.i2c_bus)
         return self.adc
 
