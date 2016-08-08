@@ -3,11 +3,12 @@
 from __future__ import print_function
 import io         # used to create file streams
 import fcntl      # used to access I2C parameters like addresses
-
+import sys
 import time       # used for sleep delay and timestamps
 
 
-class Taris_Sensor():
+class Taris_Sensor():    
+    
     ''' This object holds all required interface data for the Atlas Scientific \
     EZO pH and RTD sensors. Built off of the base library, with new functions \
     added for calibration and additional testing. '''
@@ -22,9 +23,12 @@ class Taris_Sensor():
         # initializes I2C to either a user specified or default address
         self.set_i2c_address(address)
         
-        self.long_timeout = 1.5         	# the timeout needed to query readings and calibrations
-        self.short_timeout = .5         	# timeout for regular commands
+        self.cal_timeout   = 1.6                # timeout for calibrations
+        self.read_timeout  = 1.0               # timeout for reads
+        self.short_timeout = 0.3               # timeout for regular commands
         
+        # Set if testing board
+        self.DEBUG = True
     def set_i2c_address(self, addr):
         '''Set the I2C communications to the slave specified by the address. \
         The commands for I2C dev using the ioctl functions are specified in \
@@ -39,20 +43,20 @@ class Taris_Sensor():
         cmd += "\00"
         self.file_write.write(cmd)
 
-    def read(self, num_of_bytes=31):
+    def read(self, num_of_bytes=31,startbit=1):
         '''Reads data from the sensor and parses the incoming response.'''
         # reads a specified number of bytes from I2C, then parses and displays the result
         res = self.file_read.read(num_of_bytes)         # read from the board
         response = filter(lambda x: x != '\x00', res)     # remove the null characters to get the response
         if ord(response[0]) == 1:             # if the response isn't an error
             # change MSB to 0 for all received characters except the first and get a list of characters
-            char_list = map(lambda x: chr(ord(x) & ~0x80), list(response[1:]))
+            char_list = map(lambda x: chr(ord(x) & ~0x80), list(response[startbit:]))
             # NOTE: having to change the MSB to 0 is a glitch in the raspberry pi, and you shouldn't have to do this!
             return ''.join(char_list)     # convert the char list to a string and returns it
         else:
             return "Error " + str(ord(response[0]))
 
-    def query(self, string):
+    def query(self, string, start=1):
         '''For commands that require a write, a wait, and a response. For instance, \
         calibration requires writing an initial CAL command, waiting 300ms, \
         then checking for a pass/fail indicator message.'''
@@ -60,13 +64,14 @@ class Taris_Sensor():
         self.write(string)
 
         # the read and calibration commands require a longer timeout
-        if((string.upper().startswith("R")) or
-           (string.upper().startswith("CAL"))):
-            time.sleep(self.long_timeout)
+        if string.upper().startswith("R"):
+            time.sleep(self.read_timeout)
+        elif string.upper().startswith("CAL"):
+            time.sleep(self.cal_timeout)
         else:
             time.sleep(self.short_timeout)
 
-        return self.read()
+        return self.read(startbit=start)
 
 
     def verify(self):
@@ -88,68 +93,92 @@ class Taris_Sensor():
         data = self.query("R")
         return float(data)
         
+    def cal_wait(self, cal_time):
+        '''UI for waiting for pH sensor to stabilize during calibration'''
+        x=1
+        if self.DEBUG == True:
+            cal_time = 4
+        while x<cal_time:
+            if x==1:
+                sys.stdout.write("Please wait for sensor to stabilize:")
+            else:
+                sys.stdout.write(".")
+                sys.stdout.flush() 
+                time.sleep(1)
+            x+=1
+        print('\n')
+        
     def pH_calibrateSensor(self):
         '''Performs pH sensor calibration using included buffers.'''
         
         
         # Clear previous calibration data
         print("Starting pH sensor calibration...")
-        q = self.query("Cal,clear")
-        if q != '1':
-            print("Calibration failed with response " + q)
+        q = self.query("Cal,clear", 0)
+        if str(ord(q)) != '1':
+            print("Calibration failed with response " + str(q))
             time.sleep(2)
             return False
 
         # Midpoint calibration. This will also reset previous data.
-        input("Press Enter when pH 7 buffer is loaded")
-        q = self.query("CAL,MID")
-        if q != '1':
-            print("Calibration failed with response " + q)
+        raw_input("Please rinse probe. Press [Enter] when pH 7 buffer is loaded.")
+        self.cal_wait(60)
+        mid_pH = "7.00"
+        q = self.query("CAL,MID," + mid_pH, 0)
+        if str(ord(q)) != '1':
+            print("Calibration failed with response " + str(q))
             time.sleep(2)
             return False
 
         # Lowpoint calibration
-        input("Press Enter when pH 4 buffer is loaded")
-        q = self.query("CAL,LOW")
-        if q != '1':
-            print("Calibration failed with response " + q)
+        raw_input("Please rinse probe. Press [Enter] when pH 4 buffer is loaded.")
+        self.cal_wait(60)
+        low_pH = "4.00"
+        q = self.query("CAL,LOW," + low_pH, 0)
+        if str(ord(q)) != '1':
+            print("Calibration failed with response " + str(q))
             time.sleep(2)
             return False
 
         # Highpoint calibration
-        input("Press Enter when pH 10 buffer is loaded")
-        q = self.query("CAL,HIGH")
-        if q != '1':
-            print("Calibration failed with response " + q)
+        raw_input("Please rinse probe. Press [Enter] when pH 10 buffer is loaded.")
+        self.cal_wait(60)
+        high_pH = "10.00"
+        q = self.query("CAL,HIGH," + high_pH, 0)
+        if str(ord(q)) != '1':
+            print("Calibration failed with response " + str(q))
             time.sleep(2)
             return False
 
-        q = self.query("Cal,?")
+        q = str(self.query("Cal,?"))
 
         # Check that 3-point calibration is complete, otherwise return ERROR
         if q != "?CAL,3":
-            print("Three point calibration incomplete!")
+            print("Three point calibration incomplete!" + str(q))
             cal_response = raw_input("Enter 'R' to retry or Enter to exit.")
             if cal_response == "R" or cal_response == "r":
                 self.pH_calibrateSensor()
             else:
                 return False
-                
+        
+        print("Three-point pH calibration complete!")
+        time.sleep(1)
         return True
 
     def temp_calibrateSensor(self):
         '''Calibrates the temperature sensor. Requires an external thermometer.'''
         
-        print("Clearing previous calibration.")
-        q = self.query("Cal,clear\0x0d")
+        print("Clearing previous temperature calibration.")
+        q = str(ord(self.query("Cal,clear\0x0d", 0)))
         
-        if q == "1":
-            cal_temp = raw_input("Enter room temperature.")
-            q = self.query("Cal,"+str(cal_temp))
+        if q == "1": 
+            cal_temp = raw_input("Enter room temperature\n>>")
+            self.cal_wait(5)
+            q = str(ord(self.query("Cal,"+str(cal_temp) + "\0x0d", 0)))
             
             if q == "1":
                 
-                q = self.query("Cal,?")
+                q = str(self.query("Cal,?"))
                 if q == "?CAL,1":
                     print("One point temperature calibration complete!")
                     return True
@@ -162,13 +191,15 @@ class Taris_Sensor():
                     else:
                         return False
                 else:
+                    print("Error setting new calibration temperature: " + str(q))
+                    time.sleep(1)
                     return False
             else:
-                print("Could not set new calibration temperature.")
+                print("Could not set new calibration temperature: " + str(q))
                 time.sleep(1)
                 return False
         else:
-            print("Could not clear RTD sensor.")
+            print("Could not clear RTD sensor: " + str(q))
             time.sleep(1)
             return False
             
@@ -178,15 +209,17 @@ class Taris_Sensor():
     def pH_compensateTemp(self,temp):
         '''Compensates the pH sensor for temperature, is used in conjunction with \
         a reading from the RTD sensor.'''
-        comp_status = self.query("T," + str(temp))
+        comp_status = self.query("T," + str(temp),0)
         
-        if comp_status != '1':
-            print("Temperature compensation failed!")
+        if str(ord(comp_status)) != '1':
+            print("Temperature compensation failed!: ")
+            time.sleep(2)
             return False
 
         else:
-            print("Temperature compensation set for: " + str(temp) + "C")
-
+            comp_status = str(self.query("T,?"))
+            print("Temperature compensation set for: " + comp_status[3:] + u'\xb0' + "C")
+            time.sleep(2)
         return False
 
     
@@ -203,9 +236,9 @@ class Taris_Sensor():
         4.\tRemove short from PRB to TX, then restart device.\n\
         5.\tConnect data lines to Raspberry Pi I2C pins.")
 
-        input("Press Enter when this is complete.")
+        raw_input("Press Enter when this is complete.")
 
-        input("Press Enter to prevent further changes to device configuration.")
+        raw_input("Press Enter to prevent further changes to device configuration.")
         command_message = "PLOCK," + str(command)
 
         self.sensorQ(command_message)

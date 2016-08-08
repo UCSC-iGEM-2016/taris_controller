@@ -8,10 +8,12 @@ import json                              # used to format JSON from a dictionary
 from datetime import datetime            # fetches the date and time
 
 class Taris_JSON():
-
+    
+    def __init__(self,server_ip, server_post_path, server_pull_path):
+            self.test = 0
     #filename = 'example.json'
 
-    def make_a_dic(pH, temp, inPWM, outPWM, naohPWM, filtPWM, inCURRENT, outCURRENT, naohCURRENT, filtCURRENT, des_pH, des_temp):
+    def make_a_dic(self, pH, temp, inPWM, outPWM, naohPWM, filtPWM, inCURRENT, outCURRENT, naohCURRENT, filtCURRENT, des_pH, des_temp):
         pi_time = str(datetime.now())
         data_dic = {
           'comment': 'This JSON is automatically sent with the most recent sensor/motor information to be read into the server side database.',
@@ -46,7 +48,7 @@ class Taris_JSON():
         }
         return(data_dic)
 
-    def put(data_dic, filename):
+    def put(self, data_dic, filename):
             try:
                     jsonfile = json.dumps(data_dic, indent=4)
                     f = open(filename, 'w')
