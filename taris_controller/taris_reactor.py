@@ -38,23 +38,26 @@ class Taris_Reactor():
         self.temp_sensor.verify()
         
         # Sensor data to be recorded
-        self.current_temp    = 0
         self.current_pH      = 0
+        self.current_temp    = 0
+        self.inflow_PWM      = 0
+        self.outflow_PWM     = 0
+        self.naoh_PWM        = 0
+        self.filter_PWM      = 0
         self.inflow_i        = 0
         self.outflow_i       = 0
-        self.naoh_i          = 0
+        self.naoh_i          = 1
         self.filter_i        = 0
-        self.heater_i        = 0
+        self.des_pH          = 0
+        self.des_temp        = 0
         
         # ADS pin settings        
-        
         self.inflow_ads_pin  = inflow_ads_pin
         self.outflow_ads_pin = outflow_ads_pin
         self.naoh_ads_pin    = naoh_ads_pin
         self.filter_ads_pin  = filter_ads_pin
         
         # PID parameters
-
         self.pwm_frequency   = pwm_frequency
         self.sample_frequency= sample_frequency
         self.sample_time     = 1.0 / self.sample_frequency
@@ -68,7 +71,6 @@ class Taris_Reactor():
         self.pH_int_prev     = 0
         
         # Control parameters
-        
         self.stop_reactor    = False
         self.time_count      = 0
         
@@ -113,50 +115,46 @@ class Taris_Reactor():
         '''Gets data from bioreactor sensors.'''
 
         # Get sensor values
-
         self.Check_Sensors()
 
         # Run a PID on the temperature and update PWM
-
         self.temp_output, self.temp_error_prev, self.temp_int_prev = PID(self.current_temp, \
                                                       self.temp_def,     \
                                                       self.sample_time,  \
                                                       self.temp_int_prev,\
                                                       self.temp_error_prev)
+        
         # Run a PID on the pH and update PWM
-
         self.pH_output, self.pH_error_prev, self.pH_int_prev = PID(self.current_pH, \
                                                 self.pH_def,     \
                                                 self.sample_time,\
                                                 self.pH_int_prev,\
                                                 self.pH_error_prev)
-        # Get motor currents
 
+        # Get motor currents
         self.Query_Motors()
+        
+        # Get motor PWM values
+        self.Query_PWM_Motors()
+        
 
     def Run_Bioreactor(self):
         '''Runs the bioreactor sampler at 1Hz.'''
-
         while self.stop_reactor==False:
-            # Get updated values and run control
-
-            self.Sample_Bioreactor()
-
-            # Display current values
-
-            self.Display_Status()
             
+            # Get updated values and run control
+            self.Sample_Bioreactor()
+            
+            # Display current values
+            self.Display_Status()
             time.sleep(1)
-
 
     def Check_Sensors(self):
         '''Gets current pH and temp from the EZO pH and RTD sensors.'''
         self.current_pH = self.pH_sensor.getData()
         self.current_temp = self.temp_sensor.getData()
         
-        
     # Convert analog voltage reading to current
-        
     def V_to_I(self,voltage):
         '''Converts ADS1115 voltage reading to a current, since the value \
         at each of its pins measure the drop across a current sensor resistor \
@@ -166,7 +164,6 @@ class Taris_Reactor():
         return int(voltage)/res
 
     # Get motor currents
-
     def Query_Motors(self):
         '''Returns the current flowing through each motor by measuring the \
         voltage drop across a current sense resistor.'''
@@ -174,3 +171,10 @@ class Taris_Reactor():
         self.outflow_i = self.V_to_I(self.ads.readADC(self.outflow_ads_pin,self.adc_gain))
         self.naoh_i    = self.V_to_I(self.ads.readADC(self.naoh_ads_pin,self.adc_gain))
         self.filt_i    = self.V_to_I(self.ads.readADC(self.filter_ads_pin,self.adc_gain))
+
+    def Query_PWM_Motors(self):
+        '''Returns the PWM currently running on each motor.'''
+        self.inflow_PWM  = self.V_to_I(self.PID(self.inflow_ads_pin,self.adc_gain))
+        self.outflow_PWM = self.V_to_I(self.PID(self.outflow_ads_pin,self.adc_gain))
+        self.naoh_PWM    = self.V_to_I(self.PID(self.naoh_ads_pin,self.adc_gain))
+        self.filt_PWM    = self.V_to_I(self.PID(self.filter_ads_pin,self.adc_gain))

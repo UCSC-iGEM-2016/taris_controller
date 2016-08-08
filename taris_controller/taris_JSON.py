@@ -46,7 +46,9 @@ class Taris_JSON():
         }
         return(data_dic)
 
-    def put(data_dic, filename):
+git remote add github git@github.com:/Some-Awesome-Project
+
+    def make_JSON(data_dic, filename):
             try:
                     jsonfile = json.dumps(data_dic, indent=4)
                     f = open(filename, 'w')
@@ -57,4 +59,4 @@ class Taris_JSON():
                     pass
 
     #data_dics = make_a_dic(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
-    #put(data_dics, filename)
+    #make_JSONput(data_dics, filename)

@@ -18,13 +18,11 @@ def PID(current_val, end_val, sample_time, integral_prev, error_prev):
             current_val = 0.0
 
         # Gain constants
-
         kp = 1
         ki = 1
         kd = 1
 
         # Define parameters for feedback mechanism
-    
         error_curr = int(end_val) - int(current_val)
         integral = integral_prev + float(error_curr*sample_time) / ki
         derivative = (error_curr - error_prev)/(sample_time * kd)
