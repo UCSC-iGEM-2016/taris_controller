@@ -1,3 +1,4 @@
+from __future__ import print_function
 from taris_adc import Taris_ADC as ADC
 from taris_sensor import Taris_Sensor as Sensor
 from taris_pid import PID
@@ -42,7 +43,7 @@ class Taris_Reactor():
         
         self.JSON_Handler = IOX(server_ip, server_post_path, server_pull_path)
         
-        #Set RTD Sensor unit and verify        
+        #Set RTD Sensor unit and verify
         print("Setting RTD sensor to Celsius...")
         temp_unit = "C" # F,C, or K
         self.temp_sensor.write("S," + temp_unit + "\0x0d") # Set sensor to Celsius
@@ -55,7 +56,6 @@ class Taris_Reactor():
         
         self.pH_sensor.verify()
         self.temp_sensor.verify()
-        
         
         # Clear EZO pH and RTD internal data
         self.temp_sensor.write("M,CLEAR")

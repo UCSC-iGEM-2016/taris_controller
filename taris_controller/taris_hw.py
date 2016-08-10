@@ -50,6 +50,14 @@ def Setup_Bioreactor():
     naoh_ads_pin    = 3
     filter_ads_pin  = 2
     
+    # Server settings
+    server_address = "http://169.233.254.122:8080" # austin
+    #server_address = "http://169.233.176.10:5000" # colin
+    server_post_path = "/currentRecieve"
+    server_pull_path = "/currentPost"
+    
+    print("Setting server post path to: " + server_address + server_post_path)    
+    
     newReactor = Reactor(adc_address,        \
                   i2c_bus,              \
                   pH_sensor_address,    \
@@ -62,7 +70,10 @@ def Setup_Bioreactor():
                   inflow_ads_pin,       \
                   outflow_ads_pin,      \
                   naoh_ads_pin,         \
-                  filter_ads_pin)
+                  filter_ads_pin,       \
+                  server_address,       \
+                  server_post_path,     \
+                  server_pull_path)
     
     time.sleep(1)
     
