@@ -3,19 +3,22 @@
 from __future__ import print_function    # reconciles printing between python2 and python3
 import io                                # used to create file streams
 import fcntl                             # used to access I2C parameters like addresses
-import time                              # used for sleep delay and timestamps
 import json                              # used to format JSON from a dictionary
 from datetime import datetime            # fetches the date and time
+import requests
 
 class Taris_JSON():
     
-    def __init__(self,server_ip, server_post_path, server_pull_path):
-            self.test = 0
-    #filename = 'example.json'
+    def __init__(self, server_ip, server_post_urlpath, server_pull_urlpath):
+        self.test = 0
 
-    def make_a_dic(self, pH, temp, inPWM, outPWM, naohPWM, filtPWM, inCURRENT, outCURRENT, naohCURRENT, filtCURRENT, des_pH, des_temp):
+    def post_JSON(self, jsonfile, server_post_urlpath)
+        r = requests.post(server_post_urlpath, jsonfile)
+        return(r.status_code) # returns status in the 200's if successful
+
+    def make_dict(self, pH, temp, inPWM, outPWM, naohPWM, filtPWM, inCURRENT, outCURRENT, naohCURRENT, filtCURRENT, des_pH, des_temp):
         pi_time = str(datetime.now())
-        data_dic = {
+        data = {
           'comment': 'This JSON is automatically sent with the most recent sensor/motor information to be read into the server side database.',
           'header': {
             'fromPItoServer_getSensorData': True,
@@ -46,9 +49,9 @@ class Taris_JSON():
             }
           }
         }
-        return(data_dic)
+        return(data)
 
-    def put(self, data_dic, filename):
+    def create_JSON(self, data, filename):
             try:
                     jsonfile = json.dumps(data_dic, indent=4)
                     f = open(filename, 'w')
@@ -58,5 +61,6 @@ class Taris_JSON():
                     print('ERROR opening: '), filename
                     pass
 
-    #data_dics = make_a_dic(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
-    #put(data_dics, filename)
+    #filename = 'example.json'
+    #data = make_dict(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+    #create_JSON(data, filename)

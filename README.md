@@ -7,6 +7,7 @@ Acknowledgements
 
 Many thanks to the iGEM software/bioreactor teams:
 
+* Henry Hinton
 * Austin York
 * Colin Hortman
 * Andrew Blair
