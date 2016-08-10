@@ -25,7 +25,7 @@ class Taris_Reactor():
                   outflow_ads_pin,      \
                   naoh_ads_pin,         \
                   filter_ads_pin,       \
-                  server_address,       \
+                  server_ip,       \
                   server_post_path,     \
                   server_pull_path):
 
