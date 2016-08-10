@@ -42,15 +42,16 @@ import os
 
 class Taris_PWM():
     
-    def __init__(self, inPWM, inPIN, outPWM, outPIN, naohPWM, naohPIN, heaterPWM, heaterPIN):
+    def __init__(self, inPWM, outPWM, naohPWM, heaterPWM):
         self.inPWM       = inPWM
-        self.inPIN       = inPIN        # inflow motor default pin:    21
         self.outPWM      = outPWM
-        self.outPIN      = outPIN       # outflow motor default pin:   22
         self.naohPWM     = naohPWN
-        self.naohPIN     = naohPIN      # NaOH motor default pin:      23
         self.heaterPWM   = heaterPWM
-        self.heaterPIN   = heaterPIN    # heating element default pin: 24
+        
+        self.inPIN       = 21        # inflow motor default pin:    21
+        self.outPIN      = 22        # outflow motor default pin:   22
+        self.naohPIN     = 23        # NaOH motor default pin:      23
+        self.heaterPIN   = 24        # heating element default pin: 24
 
         # initiate pi-blaster with only the four default pins above
         os.system("./pi-blaster --gpio 21,22,23,24")
