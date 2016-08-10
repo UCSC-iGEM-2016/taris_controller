@@ -24,7 +24,10 @@ class Taris_Reactor():
                   inflow_ads_pin,       \
                   outflow_ads_pin,      \
                   naoh_ads_pin,         \
-                  filter_ads_pin):
+                  filter_ads_pin,       \
+                  server_address,       \
+                  server_post_path,     \
+                  server_pull_path):
 
         # Instantiate ADC (ADS1115) object
         self.ads           = ADC(adc_address, i2c_bus)
@@ -35,11 +38,27 @@ class Taris_Reactor():
         self.pH_sensor     = Sensor(pH_sensor_address,i2c_bus)
         self.adc_gain      = adc_gain
         
+        # Network Handler
+        
+        self.JSON_Handler = IOX(server_ip, server_post_path, server_pull_path)
+        
+        #Set RTD Sensor unit and verify        
+        print("Setting RTD sensor to Celsius...")
         temp_unit = "C" # F,C, or K
         self.temp_sensor.write("S," + temp_unit + "\0x0d") # Set sensor to Celsius
+        q = self.temp_sensor.query("S,?\0x0d")
+        
+        if str(q) == "?S,"+temp_unit:
+            print("RTD set: " + str(q))
+        else:
+            print("Error setting RTD sensor unit: " + str(q))
         
         self.pH_sensor.verify()
         self.temp_sensor.verify()
+        
+        
+        # Clear EZO pH and RTD internal data
+        self.temp_sensor.write("M,CLEAR")
         
          # Internal data
         self.current_pH      = 0
@@ -125,20 +144,33 @@ class Taris_Reactor():
             'Filter: '     + str(self.filter_i)         + '\n'
 
         print(status_message)
+        
+        # Make a new JSON and post to the server
+        self.JSON_Handler.make_JSON(self.current_pH,  \
+                   self.current_temp,\
+                   self.inflow_PWM,  \
+                   self.outflow_PWM, \
+                   self.naoh_PWM,    \
+                   self.filter_PWM,  \
+                   self.heater_PWM,  \
+                   self.inflow_i,    \
+                   self.outflow_i,   \
+                   self.naoh_i,      \
+                   self.filter_i,    \
+                   self.des_pH,      \
+                   self.des_temp)
+        self.JSON_Handler.post_JSON()
 
     def Sample_Bioreactor(self):
         '''Gets data from bioreactor sensors.'''
 
         # Get sensor values
-
         self.Check_Sensors()
         
-        # Update PWM from PID
-
+        # Update PWM
         self.Query_Motor_PWM()        
         
         # Get motor currents
-
         self.Query_Motor_Current()
 
     def Run_Bioreactor(self):
