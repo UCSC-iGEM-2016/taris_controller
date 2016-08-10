@@ -6,8 +6,6 @@ import os
 # Once pi-blaster is installed on the pi, bash commands 
 # can control the PWM output of individual pins.
 # 
-# Bash commands are executed with the python os library.
-# 
 # Bash examples (taken from https://github.com/sarfata/pi-blaster): 
 #
 # This command sets pin 17 to 100%:
@@ -27,7 +25,7 @@ import os
 # numbers. This is also the default list:
 #### > ./pi-blaster --gpio 4,17,18,27,21,22,23,24,25
 #
-# To use the BCM2835's PCM peripheral instead of its PWM peripheral 
+# To use the BCM2835's PCM peripheral instead of its PWM peripheral
 # to time the DMA transfers, pass the option:
 #### > ./pi-blaster --pcm
 # 
@@ -41,12 +39,53 @@ import os
 # To view help or version information, use:
 #### > ./pi-blaster --help
 #### > ./pi-blaster --version
-# 
 
 class Taris_PWM():
     
-    def __init__(self, inPWM, outPWM, naohPWM, heaterPWM):
-        self.test = 0
+    def __init__(self, inPWM, inPIN, outPWM, outPIN, naohPWM, naohPIN, heaterPWM, heaterPIN):
+        self.inPWM       = inPWM
+        self.inPIN       = inPIN        # inflow motor default pin:    21
+        self.outPWM      = outPWM
+        self.outPIN      = outPIN       # outflow motor default pin:   22
+        self.naohPWM     = naohPWN
+        self.naohPIN     = naohPIN      # NaOH motor default pin:      23
+        self.heaterPWM   = heaterPWM
+        self.heaterPIN   = heaterPIN    # heating element default pin: 24
 
-    def set_PWM(self, PWM):
-        os.system("echo '17=0' > /dev/pi-blaster")
+        # initiate pi-blaster with only the four default pins above
+        os.system("./pi-blaster --gpio 21,22,23,24")
+
+    def set_PIN_at_PWM(self, PIN, PWM):
+        os.system("echo '" + PIN + "=" + PWM + "' > /dev/pi-blaster")
+
+    def TEST_set_PIN_at_PWM(self, PIN, PWM):
+        # writes pi-blaster commands to the FIFO file that assign a given PWM to a given pin.
+        # this is the default method of communication for pi-blaster
+        file_path = path.relpath("/dev/pi-blaster")
+        f = open(file_path,"w")
+        f.write(PIN + "=" + PWM)
+        f.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
