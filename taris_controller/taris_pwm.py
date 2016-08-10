@@ -45,10 +45,8 @@ import os
 
 class Taris_PWM():
     
-    def __init__(self, server_ip, server_post_urlpath, server_pull_urlpath):
+    def __init__(self, inPWM, outPWM, naohPWM, heaterPWM):
         self.test = 0
 
     def set_PWM(self, PWM):
-        os.system("some_command with args")
-
-
+        os.system("echo '17=0' > /dev/pi-blaster")
