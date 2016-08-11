@@ -10,7 +10,6 @@ def cls():
 def Setup_Bioreactor():
     cls()
 
-
     # Give time for sensors to power on
     x=1
     while x<5:
@@ -51,14 +50,14 @@ def Setup_Bioreactor():
     filter_ads_pin  = 2
     
     # Server settings
-    server_address = "http://169.233.254.122:8080" # austin
+    server_address = "http://128.114.62.72:5000" # austin
     #server_address = "http://169.233.176.10:5000" # colin
     server_post_path = "/currentRecieve"
     server_pull_path = "/currentPost"
     
     print("Setting server post path to: " + server_address + server_post_path)    
     
-    newReactor = Reactor(adc_address,        \
+    newReactor = Reactor(adc_address,   \
                   i2c_bus,              \
                   pH_sensor_address,    \
                   temp_sensor_address,  \
