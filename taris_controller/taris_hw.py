@@ -116,7 +116,7 @@ def Setup_Bioreactor():
     filter_ads_pin  = 2
     
     # Server settings
-    server_address = "http://128.114.62.72:5000" # soe server
+    server_address = "http://128.114.62.72" # soe server
     server_post_path = "/currentRecieve"
     server_pull_path = "/currentPost"
     

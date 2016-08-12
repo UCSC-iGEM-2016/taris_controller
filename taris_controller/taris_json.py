@@ -53,13 +53,42 @@ class Taris_JSON():
           }
         }
 
+    def pattern_JSON(self):
+    # JSON default pattern for pulling. written as an example, not meant to be used as a method
+        pattern_JSON = {
+          'comment': 'This JSON sends information back to the Pi from the server to give it new commands.',
+          'header': {
+            'toPIfromServer_sendSensorParams': True,
+            'date': date_value
+          },
+          'payload': {
+            'des_pH': pH_value,
+            'des_temp': temp_value,
+            'user_changing': username
+          }
+        }
+
     def post_JSON(self):
-        path = self.server_ip + self.server_post_path
+        post_path = self.server_ip + self.server_post_path
         try:
-            requests.post(path, json=json.dumps(self.data, indent=4))
+            requests.post(post_path, json=json.dumps(self.data, indent=4))
         except:
             print('Error posting.')
             pass
+
+    def pull_JSON(self):
+        pull_path = self.server_ip + self.server_pull_path
+        try:
+            r = requests.get(pull_path, json=json.load(self.data, indent=4))
+            # r = requests.get(pull_path, auth=('user', 'pass'))
+        except:
+            print('\nError pulling.')
+            pass
+
+        with open('strings.json') as json_data:
+        d = json.load(json_data)
+        print(d)
+        
                 
     def get_params(self):
         return False
