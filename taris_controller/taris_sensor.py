@@ -161,7 +161,7 @@ class Taris_Sensor():
             else:
                 return False
         
-        print("Three-point pH calibration complete!")
+        print("Three point pH calibration complete!")
         time.sleep(1)
         return True
 

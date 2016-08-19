@@ -76,18 +76,18 @@ class Taris_JSON():
             print('Error posting.')
             pass
 
-    def pull_JSON(self):
-        pull_path = self.server_ip + self.server_pull_path
-        try:
-            r = requests.get(pull_path, json=json.load(self.data, indent=4))
-            # r = requests.get(pull_path, auth=('user', 'pass'))
-        except:
-            print('\nError pulling.')
-            pass
-
-        with open('strings.json') as json_data:
-        d = json.load(json_data)
-        print(d)
+#    def pull_JSON(self):
+#        pull_path = self.server_ip + self.server_pull_path
+#        try:
+#            r = requests.get(pull_path, json=json.load(self.data, indent=4))
+#            # r = requests.get(pull_path, auth=('user', 'pass'))
+#        except:
+#            print('\nError pulling.')
+#            pass
+#
+#        with open('strings.json') as json_data:
+#        d = json.load(json_data)
+#        print(d)
         
                 
     def get_params(self):

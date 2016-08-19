@@ -2,6 +2,7 @@ from __future__ import print_function
 from taris_adc import Taris_ADC as ADC
 from taris_sensor import Taris_Sensor as Sensor
 from taris_pid import PID
+from taris_pwm import Taris_PWM as Motor
 from taris_json import Taris_JSON as IOX
 import os
 import time
@@ -31,21 +32,21 @@ class Taris_Reactor():
                   server_pull_path):
 
         # Instantiate ADC (ADS1115) object
-        self.ads           = ADC(adc_address, i2c_bus)
+        self.ads             = ADC(adc_address, i2c_bus)
         self.ads.setupADC() 
         
-        # Instantiate atlas objects
-        self.temp_sensor   = Sensor(temp_sensor_address,i2c_bus)
-        self.pH_sensor     = Sensor(pH_sensor_address,i2c_bus)
-        self.adc_gain      = adc_gain
+        # Instantiate Atlas Objects
+        self.temp_sensor     = Sensor(temp_sensor_address,i2c_bus)
+        self.pH_sensor       = Sensor(pH_sensor_address,i2c_bus)
+        self.adc_gain        = adc_gain
         
         # Network Handler
         
         self.JSON_Handler = IOX(server_ip, server_post_path, server_pull_path)
         
         #Set RTD Sensor unit and verify
-        print("Setting RTD sensor to Celsius...")
-        temp_unit = "C" # F,C, or K
+        print("Setting RTD sensor to Fahrenheit...")
+        temp_unit = "F" # F,C, or K
         self.temp_sensor.write("S," + temp_unit + "\0x0d") # Set sensor to Celsius
         q = self.temp_sensor.query("S,?\0x0d")
         
@@ -88,6 +89,17 @@ class Taris_Reactor():
         self.outflow_ads_pin = outflow_ads_pin
         self.naoh_ads_pin    = naoh_ads_pin
         self.filter_ads_pin  = filter_ads_pin
+
+        # Instantiate Motor Object
+        self.motors          = Motor(self.inflow_PWM, self.outflow_PWM, \
+                                     self.naoh_PWM, self.heater_PWM)
+
+        # Motor pins
+        
+        self.motor1      = 21
+        self.motor2      = 22
+        self.motor3      = 23
+        self.motor4      = 24
         
         # PID parameters
 
@@ -119,7 +131,8 @@ class Taris_Reactor():
             1.\tCalibrate pH sensor\n\
             2.\tCalibrate temp sensor\n\
             3.\tCalibrate both temp and pH. Temperature will be used\n\
-            \tfor additional pH calibration.\n>>"))
+            \tfor additional pH calibration.\n\
+            4.\tExit to main menu.\n>> "))
         if user_selection == '1':
             self.pH_sensor.pH_calibrateSensor()
         elif user_selection == '2':
@@ -129,6 +142,49 @@ class Taris_Reactor():
             self.temp_sensor.temp_calibrateSensor()
             setup_temp = self.temp_sensor.getData()
             self.pH_sensor.pH_compensateTemp(setup_temp)
+        elif user_selection == '4':
+            print("Goodbye.")
+
+    def Run_PWM(self):
+        '''UI for motor and PWM testing.'''
+        self.cls()
+        user_selection = str(input("Please select from the options below:\n\
+            1.\tRun motor 1.\n\
+            2.\tRun motor 2.\n\
+            3.\tRun motor 3.\n\
+            4.\tRun motor 4.\n\
+            5.\tTurn all motors off.\n\
+            6.\tExit to main menu.\n\
+            7.\Run PID test.\n>> "))
+        if user_selection == '1':
+            self.motors.set_PIN_at_PWM(self.motor1, 1.0)
+            self.Run_PWM()
+        elif user_selection == '2':
+            self.motors.set_PIN_at_PWM(self.motor2, 1.0)
+            self.Run_PWM()
+        elif user_selection == '3':
+            self.motors.set_PIN_at_PWM(self.motor3, 1.0)
+            self.Run_PWM()
+        elif user_selection == '4':
+            self.motors.set_PIN_at_PWM(self.motor4, 1.0)
+            self.Run_PWM()
+        elif user_selection == '5':
+            self.motors.set_PIN_at_PWM(self.motor1, 0)
+            self.motors.set_PIN_at_PWM(self.motor2, 0)
+            self.motors.set_PIN_at_PWM(self.motor3, 0)
+            self.motors.set_PIN_at_PWM(self.motor4, 0)
+            self.Run_PWM()
+        elif user_selection == '6':
+            print("Goodbye.")
+        elif user_selection == '7':
+            self.heater_PWM, self.temp_error_prev, self.temp_int_prev = self.motors.PID(self.current_temp,\
+                                                      self.temp_def,     \
+                                                      self.sample_time,  \
+                                                      self.temp_int_prev,\
+                                                      self.temp_error_prev)
+        else:
+            print("Input is incorrect.  Please select a number from the menu... o.o")
+            self.Run_PWM()
 
     def Display_Status(self):
         '''Displays relevant information while reactor is running.'''
@@ -168,7 +224,7 @@ class Taris_Reactor():
         self.Check_Sensors()
         
         # Update PWM
-        self.Query_Motor_PWM()        
+        self.Query_Motor_PWM()
         
         # Get motor currents
         self.Query_Motor_Current()

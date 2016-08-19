@@ -102,8 +102,8 @@ def Setup_Bioreactor():
     pwm_frequency = 75
     sample_frequency = 100 #Hz
 
-    pH_def   = 5.0
-    temp_def = 37.0 # Celsius
+    pH_def   = 7.0
+    temp_def = 24.0 # Celsius
 
     # Default parameters for ADC settings
 
@@ -149,14 +149,13 @@ def Setup_Bioreactor():
         (i2c_bus,\
         adc_address,adc_gain,inflow_ads_pin,outflow_ads_pin,naoh_ads_pin,filter_ads_pin,\
         pH_sensor_address,temp_sensor_address,pwm_frequency))
-        
-    
+            
     time.sleep(3)    
     
     return newReactor
 
 def Print_Menu_Query():
-    '''Main bioreactor UI menu.'''    
+    '''Main bioreactor UI menu.'''
     
     cls()
     print("Welcome to the UCSC iGEM 2016 Taris Bioreactor.")
@@ -180,7 +179,7 @@ def Run():
 
     # System & Network Status
     elif user_input == '2':
-        print("BLEH")
+        Taris.Run_PWM()
         Run()
 
     # Start Bioreactor
