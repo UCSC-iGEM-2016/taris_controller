@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import print_function    # reconciles printing between python2 and python3
 import os
 import io
 
@@ -41,15 +42,13 @@ import io
 #### > ./pi-blaster --help
 #### > ./pi-blaster --version
 
-PINd = 22
-PWMd = 0
-
-PINd = str(PINd)
-PWMd = str(PWMd)
-
+#PINd = 22
+#PWMd = 0
+#PINd = str(PINd)
+#PWMd = str(PWMd)
 #os.system("echo '" + PINd + "=" + PWMd + "' > /dev/pi-blaster")
 
-class Taris_PWM():
+class Taris_Motors():
     
     def __init__(self, inPWM, outPWM, naohPWM, heaterPWM):
         self.inPWM       = inPWM
@@ -62,6 +61,12 @@ class Taris_PWM():
         self.naohPIN     = 23        # NaOH motor default pin:      23
         self.heaterPIN   = 24        # heating element default pin: 24
 
+        self.current_val      = 0.0
+        self.end_val          = 0.0
+        self.sample_time      = 0.0
+        self.integral_prev    = 0.0
+        self.error_prev       = 0.0
+
         # initiate pi-blaster with only the four default pins above
         os.system("./pi-blaster --gpio 21,22,23,24")
 
@@ -73,7 +78,7 @@ class Taris_PWM():
     def TEST_set_PIN_at_PWM(self, PIN, PWM):
         # attempts to write pi-blaster commands to the FIFO file
         # this is the default method of communication for pi-blaster
-        # does not currently work
+        # not currently used
         PIN = str(PIN)
         PWM = str(PWM)
         file_path = os.path.relpath("/dev/pi-blaster")
@@ -81,4 +86,41 @@ class Taris_PWM():
         f.write(PIN + "=" + PWM)
         f.close()
 
-Taris_PWM.set_PIN_at_PWM(22, 0)
+    def PID(self, current_val, end_val, sample_time, integral_prev, error_prev):
+        """
+        PID is a feedback control algorithm that determines the output of a system
+        input x(t) to stabilize future outputs x(t+n). This allows for regulated
+        pulse width modulation (PWM) for "locking" a system to a desired value.
+
+        :param current_val: current input value
+        :param end_val: desired system value
+        :param sample_time: sampling rate (run PID every x seconds)
+        :param integral_prev: previous integral value
+        :param error_prev: previous error value
+        :return: system value, previous error, integral error
+        """
+        if current_val != None:
+            if integral_prev == None:
+                integral_prev = 0.0
+                error_prev = 0.0
+                current_val = 0.0
+
+            # Gain constants
+            kp = 1
+            ki = 1
+            kd = 1
+
+            # Define parameters for feedback mechanism
+            error_curr = int(end_val) - int(current_val)
+            integral = integral_prev + float(error_curr*sample_time) / ki
+            derivative = (error_curr - error_prev)/(sample_time * kd)
+
+            # Compute output from above parameters
+            y = kp * (error_curr + integral + derivative)
+
+            error_prev = error_curr
+            integral_prev = integral
+
+            return (y, error_prev, integral_prev)
+        else:
+            return 0

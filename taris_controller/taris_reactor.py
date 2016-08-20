@@ -2,7 +2,7 @@ from __future__ import print_function
 from taris_adc import Taris_ADC as ADC
 from taris_sensor import Taris_Sensor as Sensor
 from taris_pid import PID
-from taris_pwm import Taris_PWM as Motor
+from taris_motors import Taris_Motors as Motor
 from taris_json import Taris_JSON as IOX
 import os
 import time

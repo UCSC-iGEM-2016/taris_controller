@@ -2,6 +2,7 @@
 
 from __future__ import print_function    # reconciles printing between python2 and python3
 import io                                # used to create file streams
+import urllib                            # pulling and requests
 import json                              # used to format JSON from a dictionary
 from datetime import datetime            # fetches the date and time
 import requests
@@ -13,6 +14,7 @@ class Taris_JSON():
         self.server_post_path    = server_post_path
         self.server_pull_path    = server_pull_path
         self.data = {}
+        self.paramdata = {}
             
     def make_JSON(self, pH, temp, inPWM, outPWM, naohPWM, filtPWM, heaterPWM, inCURRENT, outCURRENT, naohCURRENT, filtCURRENT, des_pH, des_temp):
 
@@ -53,12 +55,11 @@ class Taris_JSON():
           }
         }
 
-    def pattern_JSON(self):
-    # JSON default pattern for pulling. written as an example, not meant to be used as a method
-        pattern_JSON = {
+    def make_param_JSON(self, sendTF, date_value, pH_value, temp_value, username):
+        self.paramdata = {
           'comment': 'This JSON sends information back to the Pi from the server to give it new commands.',
           'header': {
-            'toPIfromServer_sendSensorParams': True,
+            'toPIfromServer_sendSensorParams': sendTF,
             'date': date_value
           },
           'payload': {
@@ -76,19 +77,20 @@ class Taris_JSON():
             print('Error posting.')
             pass
 
-#    def pull_JSON(self):
-#        pull_path = self.server_ip + self.server_pull_path
-#        try:
-#            r = requests.get(pull_path, json=json.load(self.data, indent=4))
-#            # r = requests.get(pull_path, auth=('user', 'pass'))
-#        except:
-#            print('\nError pulling.')
-#            pass
-#
+    def pull_JSON(self):
+        pull_path = self.server_ip + self.server_pull_path
+        try:
+            response = urllib.urlopen(pull_path)
+            data = json.loads(response.read())
+            # print data
+        except:
+            print('\nError pulling.')
+            pass
+
+###TRY requests.get(pull_path, json=json.load(self.paramdata, indent=4))
 #        with open('strings.json') as json_data:
 #        d = json.load(json_data)
 #        print(d)
-        
                 
     def get_params(self):
         return False
