@@ -1,7 +1,7 @@
 from __future__ import print_function
 from taris_adc import Taris_ADC as ADC
 from taris_sensor import Taris_Sensor as Sensor
-from taris_pid import PID
+# from taris_pid import PID
 from taris_motors import Taris_Motors as Motor
 from taris_json import Taris_JSON as IOX
 import os
@@ -45,23 +45,23 @@ class Taris_Reactor():
         self.JSON_Handler = IOX(server_ip, server_post_path, server_pull_path)
         
         #Set RTD Sensor unit and verify
-        print("Setting RTD sensor to Fahrenheit...")
+        print("Setting temperature sensor to fahrenheit...")
         temp_unit = "F" # F,C, or K
-        self.temp_sensor.write("S," + temp_unit + "\0x0d") # Set sensor to Celsius
+        self.temp_sensor.write("S," + temp_unit + "\0x0d") # Set to fahrenheit
         q = self.temp_sensor.query("S,?\0x0d")
         
         if str(q) == "?S,"+temp_unit:
-            print("RTD set: " + str(q))
+            print("Temperature sensor reponse (C, F, or K): " + str(temp_unit))
         else:
-            print("Error setting RTD sensor unit: " + str(q))
+            print("Error setting temperature sensor: " + str(q))
         
         self.pH_sensor.verify()
         self.temp_sensor.verify()
         
-        # Clear EZO pH and RTD internal data
+        # Clear EZO pH and temperature sensors' internal data
         self.temp_sensor.write("M,CLEAR")
         
-         # Internal data
+        # Internal data
         self.current_pH      = 0
         self.current_temp    = 0
         
@@ -84,7 +84,6 @@ class Taris_Reactor():
         self.filter_rate     = 0
         
         # ADS pin settings        
-        
         self.inflow_ads_pin  = inflow_ads_pin
         self.outflow_ads_pin = outflow_ads_pin
         self.naoh_ads_pin    = naoh_ads_pin
@@ -95,14 +94,12 @@ class Taris_Reactor():
                                      self.naoh_PWM, self.heater_PWM)
 
         # Motor pins
-        
         self.motor1      = 21
         self.motor2      = 22
         self.motor3      = 23
         self.motor4      = 24
-        
-        # PID parameters
 
+        # PID parameters
         self.pwm_frequency   = pwm_frequency
         self.sample_frequency= sample_frequency
         self.sample_time     = 1.0 / self.sample_frequency
@@ -114,9 +111,8 @@ class Taris_Reactor():
         self.temp_int_prev   = 0
         self.pH_error_prev   = 0
         self.pH_int_prev     = 0
-        
+
         # Control parameters
-        
         self.stop_reactor    = False
         self.time_count      = 0
         
@@ -188,9 +184,7 @@ class Taris_Reactor():
 
     def Display_Status(self):
         '''Displays relevant information while reactor is running.'''
-               
         self.cls()
-        
         status_message = 'Taris V1.0 Bioreactor | Current time:' + str(time.strftime("%d-%m-%Y @ %H:%M:%S")) + '\n' +\
             'Temp:   '     + str(self.current_temp)     + '\n' +\
             'pH:     '     + str(self.current_pH)       + '\n' +\
@@ -219,7 +213,6 @@ class Taris_Reactor():
 
     def Sample_Bioreactor(self):
         '''Gets data from bioreactor sensors.'''
-
         # Get sensor values
         self.Check_Sensors()
         
@@ -234,15 +227,11 @@ class Taris_Reactor():
 
         while self.stop_reactor==False:
             # Get updated values and run control
-
             self.Sample_Bioreactor()
 
             # Display current values
-
             self.Display_Status()
-            
             time.sleep(1)
-
 
     def Check_Sensors(self):
         '''Gets current pH and temp from the EZO pH and RTD sensors.'''
@@ -253,7 +242,6 @@ class Taris_Reactor():
         '''Converts ADS1115 voltage reading to a current, since the value \
         at each of its pins measure the drop across a current sensor resistor \
         respective to each motor.'''
-        
         res = 0.1
         return int(voltage)/res
         
@@ -261,18 +249,16 @@ class Taris_Reactor():
         '''Converts desired flowrate to a PWM value.'''
         converted_value = 0.0431*input_rate - 0.5509
         return converted_value
-    
+
     def Query_Motor_PWM(self):
         # Run a PID on the temperature and update PWM
-
-        self.heater_PWM, self.temp_error_prev, self.temp_int_prev = PID(self.current_temp, \
-                                                      self.temp_def,     \
-                                                      self.sample_time,  \
-                                                      self.temp_int_prev,\
-                                                      self.temp_error_prev)
+        self.heater_PWM, self.temp_error_prev, self.temp_int_prev = self.motors.PID(self.current_temp, \
+                                                self.temp_def,     \
+                                                self.sample_time,  \
+                                                self.temp_int_prev,\
+                                                self.temp_error_prev)
         # Run a PID on the pH and update PWM
-
-        self.naoh_PWM, self.pH_error_prev, self.pH_int_prev = PID(self.current_pH, \
+        self.naoh_PWM, self.pH_error_prev, self.pH_int_prev = self.motors.PID(self.current_pH, \
                                                 self.pH_def,     \
                                                 self.sample_time,\
                                                 self.pH_int_prev,\

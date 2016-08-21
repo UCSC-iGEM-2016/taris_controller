@@ -100,7 +100,7 @@ def Setup_Bioreactor():
     pwm_frequency          = 75   # Hz
     sample_frequency       = 100  # Hz
     pH_def                 = 7.0
-    temp_def               = 24.0 # Celsius
+    temp_def               = 75.0 # Fahrenheit
 
     # Default ADC settings
     i2c_bus                = 1    # 0 on older pi's
@@ -163,8 +163,8 @@ def Setup_Bioreactor():
 def Print_Menu_Query():
     '''Main bioreactor UI menu.'''
     
-    cls()
-    print("Welcome to the UCSC iGEM 2016 Taris Bioreactor.")
+    #cls()
+    print("Welcome to the UCSC iGEM 2016 Taris Bioreactor.\n")
     
     user_selection = str(raw_input('Please select from the options below:\n\
     1.\tCalibrate Sensors\n\

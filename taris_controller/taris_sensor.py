@@ -22,13 +22,13 @@ class Taris_Sensor():
 
         # initializes I2C to either a user specified or default address
         self.set_i2c_address(address)
-        
-        self.cal_timeout   = 1.6                # timeout for calibrations
-        self.read_timeout  = 1.0               # timeout for reads
-        self.short_timeout = 0.3               # timeout for regular commands
+        self.cal_timeout   = 1.6            # timeout for calibrations
+        self.read_timeout  = 1.0            # timeout for reads
+        self.short_timeout = 0.3            # timeout for regular commands
         
         # Set if testing board
         self.DEBUG = True
+        
     def set_i2c_address(self, addr):
         '''Set the I2C communications to the slave specified by the address. \
         The commands for I2C dev using the ioctl functions are specified in \

@@ -68,7 +68,7 @@ class Taris_Motors():
         self.error_prev       = 0.0
 
         # initiate pi-blaster with only the four default pins above
-        os.system("./pi-blaster --gpio 21,22,23,24")
+        os.system("sudo ./pi-blaster/pi-blaster --gpio 21,22,23,24")
 
     def set_PIN_at_PWM(self, PIN, PWM):
         PIN = str(PIN)
