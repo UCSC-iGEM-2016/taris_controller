@@ -80,8 +80,9 @@ class Taris_JSON():
     def pull_JSON(self):
         pull_path = self.server_ip + self.server_pull_path
         try:
-            response = urllib.urlopen(pull_path)
-            self.paramdata = json.loads(response.read())
+            #response = urllib.urlopen(pull_path)
+            #self.paramdata = json.loads(response.read())
+            requests.pull(pull_path, json=self.paramdata)
         except:
             print('\nError pulling.')
             pass
