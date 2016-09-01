@@ -1,11 +1,11 @@
 from __future__ import print_function
 from taris_adc import Taris_ADC as ADC
 from taris_sensor import Taris_Sensor as Sensor
-# from taris_pid import PID
 from taris_motors import Taris_Motors as Motor
 from taris_json import Taris_JSON as IOX
 import os
 import time
+from taris_calibrate import PID_Cal as CAL
 
 class Taris_Reactor():
     '''Holds the object that runs the bioreactor and handles data aggregation. \
@@ -76,9 +76,6 @@ class Taris_Reactor():
         self.naoh_i          = 0
         self.filter_i        = 0
         
-        self.des_pH          = 0
-        self.des_temp        = 0
-        
         self.inflow_rate     = 0
         self.outflow_rate    = 0
         self.filter_rate     = 0
@@ -89,15 +86,6 @@ class Taris_Reactor():
         self.naoh_ads_pin    = naoh_ads_pin
         self.filter_ads_pin  = filter_ads_pin
 
-        # Instantiate Motor Object
-        self.motors          = Motor(self.inflow_PWM, self.outflow_PWM, \
-                                     self.naoh_PWM, self.heater_PWM)
-
-        # Motor pins
-        self.motor1      = 21
-        self.motor2      = 22
-        self.motor3      = 23
-        self.motor4      = 24
 
         # PID parameters
         self.pwm_frequency   = pwm_frequency
@@ -111,6 +99,21 @@ class Taris_Reactor():
         self.temp_int_prev   = 0
         self.pH_error_prev   = 0
         self.pH_int_prev     = 0
+        
+        self.Kp = 0.25
+        self.Ki = 0.1
+        self.Kd = 0.5
+        
+        # Instantiate Motor Object
+        self.motors          = Motor(self.inflow_PWM, self.outflow_PWM, \
+                                     self.naoh_PWM, self.heater_PWM,    \
+                                     self.Kp, self.Ki, self.Kd)
+                                    
+        # Motor pins
+        self.motor1      = 21
+        self.motor2      = 22
+        self.motor3      = 23
+        self.motor4      = 24
 
         # Control parameters
         self.stop_reactor    = False
@@ -177,7 +180,8 @@ class Taris_Reactor():
                                                       self.temp_def,     \
                                                       self.sample_time,  \
                                                       self.temp_int_prev,\
-                                                      self.temp_error_prev)
+                                                      self.temp_error_prev,\
+                                                      "temp")
         else:
             print("Input is incorrect.  Please select a number from the menu... o.o")
             self.Run_PWM()
@@ -191,7 +195,9 @@ class Taris_Reactor():
             'Inflow: '     + str(self.inflow_i)         + '\n' +\
             'Outflow:'     + str(self.outflow_i)        + '\n' +\
             'NaOH:   '     + str(self.naoh_i)           + '\n' +\
-            'Filter: '     + str(self.filter_i)         + '\n'
+            'Filter: '     + str(self.filter_i)         + '\n' +\
+            'Des. Temp: '   + str(self.temp_def)         + '\n' +\
+            'Des. pH: '     + str(self.pH_def)         + '\n'
 
         print(status_message)
         
@@ -207,9 +213,10 @@ class Taris_Reactor():
                    self.outflow_i,   \
                    self.naoh_i,      \
                    self.filter_i,    \
-                   self.des_pH,      \
-                   self.des_temp)
+                   self.pH_def,      \
+                   self.temp_def)
         self.JSON_Handler.post_JSON()
+        self.pH_def, self.temp_def = self.JSON_Handler.pull_JSON()
 
     def Sample_Bioreactor(self):
         '''Gets data from bioreactor sensors.'''
@@ -224,13 +231,23 @@ class Taris_Reactor():
 
     def Run_Bioreactor(self):
         '''Runs the bioreactor sampler at 1Hz.'''
+                # Instantiate PID test jig
 
+        self.cal = CAL(self.Kp, self.Ki, self.Kd)        
+        self.cal.runCal()
+        
         while self.stop_reactor==False:
             # Get updated values and run control
             self.Sample_Bioreactor()
 
             # Display current values
             self.Display_Status()
+            self.Kp, self.Ki, self.Kd = self.cal.updateCal(self.current_temp, self.heater_PWM)
+            
+            # Update motor PWM
+            self.motors.set_PIN_at_PWM(self.motor4, self.heater_PWM)            
+            
+            
             time.sleep(1)
 
     def Check_Sensors(self):
@@ -256,13 +273,13 @@ class Taris_Reactor():
                                                 self.temp_def,     \
                                                 self.sample_time,  \
                                                 self.temp_int_prev,\
-                                                self.temp_error_prev)
+                                                self.temp_error_prev, "temp")
         # Run a PID on the pH and update PWM
         self.naoh_PWM, self.pH_error_prev, self.pH_int_prev = self.motors.PID(self.current_pH, \
                                                 self.pH_def,     \
                                                 self.sample_time,\
                                                 self.pH_int_prev,\
-                                                self.pH_error_prev)
+                                                self.pH_error_prev, "pH")
 
     def Query_Motor_Current(self):
         '''Returns the current flowing through each motor by measuring the \

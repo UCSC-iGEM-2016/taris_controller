@@ -82,7 +82,9 @@ class Taris_JSON():
         try:
             #response = urllib.urlopen(pull_path)
             #self.paramdata = json.loads(response.read())
-            requests.pull(pull_path, json=self.paramdata)
+            r = requests.get(pull_path).json()
+            #print(str(r['payload']['des_pH']) + ", " + str(r['payload']['des_temp']))
+            return int(r['payload']['des_pH']), int(r['payload']['des_temp'])
         except:
             print('\nError pulling.')
             pass

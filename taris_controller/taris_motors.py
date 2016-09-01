@@ -50,7 +50,7 @@ import io
 
 class Taris_Motors():
     
-    def __init__(self, inPWM, outPWM, naohPWM, heaterPWM):
+    def __init__(self, inPWM, outPWM, naohPWM, heaterPWM, Kp, Ki, Kd):
         self.inPWM       = inPWM
         self.outPWM      = outPWM
         self.naohPWM     = naohPWM
@@ -66,6 +66,10 @@ class Taris_Motors():
         self.sample_time      = 0.0
         self.integral_prev    = 0.0
         self.error_prev       = 0.0
+        
+        self.Kp = Kp
+        self.Kd = Kd
+        self.Ki = Ki
 
         # initiate pi-blaster with only the four default pins above
         os.system("sudo ./pi-blaster/pi-blaster --gpio 21,22,23,24")
@@ -86,7 +90,7 @@ class Taris_Motors():
         f.write(PIN + "=" + PWM)
         f.close()
 
-    def PID(self, current_val, end_val, sample_time, integral_prev, error_prev):
+    def PID(self, current_val, end_val, sample_time, integral_prev, error_prev, stype):
         """
         PID is a feedback control algorithm that determines the output of a system
         input x(t) to stabilize future outputs x(t+n). This allows for regulated
@@ -99,28 +103,46 @@ class Taris_Motors():
         :param error_prev: previous error value
         :return: system value, previous error, integral error
         """
+        
         if current_val != None:
             if integral_prev == None:
                 integral_prev = 0.0
                 error_prev = 0.0
                 current_val = 0.0
 
-            # Gain constants
-            kp = 1
-            ki = 1
-            kd = 1
-
             # Define parameters for feedback mechanism
-            error_curr = int(end_val) - int(current_val)
-            integral = integral_prev + float(error_curr*sample_time) / ki
-            derivative = (error_curr - error_prev)/(sample_time * kd)
+            error_curr = float(end_val) - float(current_val)
+            integral = integral_prev + float(error_curr*sample_time) / self.Ki
+            derivative = (error_curr - error_prev)/(sample_time * self.Kd)
 
             # Compute output from above parameters
-            y = kp * (error_curr + integral + derivative)
+            y = self.Kp * (error_curr + integral + derivative)
 
             error_prev = error_curr
             integral_prev = integral
 
-            return (y, error_prev, integral_prev)
+            # pH settings
+
+            if stype == "pH":
+                if error_curr <= 0:
+                    y = 0
+            # temp settings   
+                    
+            elif stype == "temp":
+                if error_curr < 0:
+                    y = 0
+                elif 10 < error_curr < 20:
+                    y = 100 - 200/error_curr
+                elif error_curr > 15:
+                    y = 100
+                    
+            elif y < 0:
+                y = 0
+                
+            if y > 40:
+                y = 40
+                
+            print(stype + " output: " + str(y) + ", " + str(integral) + " ," + str(error_curr))
+            return (abs(y/100), error_prev, integral_prev)
         else:
             return 0
