@@ -113,7 +113,7 @@ class Taris_Reactor():
         self.motor1      = 21
         self.motor2      = 22
         self.motor3      = 23
-        self.motor4      = 24
+        self.motor4      = 23
 
         # Control parameters
         self.stop_reactor    = False

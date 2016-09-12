@@ -72,11 +72,12 @@ class Taris_Motors():
         self.Ki = Ki
 
         # initiate pi-blaster with only the four default pins above
-        os.system("sudo ./pi-blaster/pi-blaster --gpio 21,22,23,24")
+        os.system("sudo ./pi-blaster/pi-blaster --gpio 21,22,23,24,26")
 
     def set_PIN_at_PWM(self, PIN, PWM):
         PIN = str(PIN)
         PWM = str(PWM)
+        print("Setting pin " + PIN + " to " + PWM)
         os.system("echo '" + PIN + "=" + PWM + "' > /dev/pi-blaster")
 
     def TEST_set_PIN_at_PWM(self, PIN, PWM):
@@ -138,11 +139,11 @@ class Taris_Motors():
                     
             elif y < 0:
                 y = 0
-                
-            if y > 40:
-                y = 40
+            
+            scaling_factor = 10.0 # don't burn things down            
+            y = y/scaling_factor
                 
             print(stype + " output: " + str(y) + ", " + str(integral) + " ," + str(error_curr))
-            return (abs(y/100), error_prev, integral_prev)
+            return (abs(y/100.0), error_prev, integral_prev)
         else:
             return 0

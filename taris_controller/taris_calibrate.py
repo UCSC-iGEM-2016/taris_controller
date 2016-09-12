@@ -35,7 +35,7 @@ class PID_Cal:
         self.ax = self.fig.add_axes([0.125, 0.5, x_w, 0.375])
         self.points, = self.ax.plot([], [])
         #self.ax.set_ylim([0,12])
-        self.ax.set_ylim([32,90])
+        self.ax.set_ylim([32,100])
         plt.title("Taris PID Calibration Tool")
 
         # PID plotting
@@ -119,7 +119,8 @@ class PID_Cal:
         print("Adding point: " + str(current_value))
         self.addPoint(self.timestep, current_value)
         self.Ki, self.Kp, self.Kd = self.getKx()
-        self.plotSystemTime(pwm_value*100, self.timestep)
+        print("PWM: " + str(pwm_value*100.0))
+        self.plotSystemTime(pwm_value*100.0, self.timestep)
         self.timestep +=1
         return self.Kp, self.Ki, self.Kd
                 
