@@ -163,7 +163,7 @@ def Setup_Bioreactor():
 def Print_Menu_Query():
     '''Main bioreactor UI menu.'''
     
-    #cls()
+    cls()
     print("Welcome to the UCSC iGEM 2016 Taris Bioreactor.\n")
     
     user_selection = str(raw_input('Please select from the options below:\n\

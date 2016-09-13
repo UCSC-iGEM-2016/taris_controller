@@ -45,7 +45,7 @@ class Taris_Reactor():
         self.JSON_Handler = IOX(server_ip, server_post_path, server_pull_path)
         
         #Set RTD Sensor unit and verify
-        print("Setting temperature sensor to fahrenheit...")
+        print("Setting temperature sensor to celsius...")
         temp_unit = "C" # F,C, or K
         self.temp_sensor.write("S," + temp_unit + "\0x0d") # Set to fahrenheit
         q = self.temp_sensor.query("S,?\0x0d")
@@ -154,7 +154,7 @@ class Taris_Reactor():
             4.\tRun motor 4.\n\
             5.\tTurn all motors off.\n\
             6.\tExit to main menu.\n\
-            7.\Run PID test.\n>> "))
+            7.\tRun PID test.\n>> "))
         if user_selection == '1':
             self.motors.set_PIN_at_PWM(self.motor1, 1.0)
             self.Run_PWM()
@@ -189,15 +189,15 @@ class Taris_Reactor():
     def Display_Status(self):
         '''Displays relevant information while reactor is running.'''
         self.cls()
-        status_message = 'Taris V1.0 Bioreactor | Current time:' + str(time.strftime("%d-%m-%Y @ %H:%M:%S")) + '\n' +\
+        status_message = 'Taris V1.0 Bioreactor | Current time: ' + str(time.strftime("%d-%m-%Y @ %H:%M:%S")) + '\n' +\
             'Temp:   '     + str(self.current_temp)     + '\n' +\
             'pH:     '     + str(self.current_pH)       + '\n' +\
             'Inflow: '     + str(self.inflow_i)         + '\n' +\
             'Outflow:'     + str(self.outflow_i)        + '\n' +\
             'NaOH:   '     + str(self.naoh_i)           + '\n' +\
             'Filter: '     + str(self.filter_i)         + '\n' +\
-            'Des. Temp: '   + str(self.temp_def)         + '\n' +\
-            'Des. pH: '     + str(self.pH_def)         + '\n'
+            'Des. Temp: '  + str(self.temp_def)         + '\n' +\
+            'Des. pH: '    + str(self.pH_def)           + '\n'
 
         print(status_message)
         

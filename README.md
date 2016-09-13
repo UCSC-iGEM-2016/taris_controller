@@ -24,6 +24,7 @@ Doing such and such should install the following dependencies:
 
 * Adafruit Thing
 * I2C Thing
+* MatPlotLib Thing
 
 To run the program:
 
