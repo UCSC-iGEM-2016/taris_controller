@@ -46,7 +46,7 @@ class Taris_Reactor():
         
         #Set RTD Sensor unit and verify
         print("Setting temperature sensor to fahrenheit...")
-        temp_unit = "F" # F,C, or K
+        temp_unit = "C" # F,C, or K
         self.temp_sensor.write("S," + temp_unit + "\0x0d") # Set to fahrenheit
         q = self.temp_sensor.query("S,?\0x0d")
         
@@ -113,7 +113,7 @@ class Taris_Reactor():
         self.motor1      = 21
         self.motor2      = 22
         self.motor3      = 23
-        self.motor4      = 23
+        self.motor4      = 17
 
         # Control parameters
         self.stop_reactor    = False
@@ -243,10 +243,9 @@ class Taris_Reactor():
             # Display current values
             self.Display_Status()
             self.Kp, self.Ki, self.Kd = self.cal.updateCal(self.current_temp, self.heater_PWM)
-            
+
             # Update motor PWM
             self.motors.set_PIN_at_PWM(self.motor4, self.heater_PWM)            
-            
             
             time.sleep(1)
 

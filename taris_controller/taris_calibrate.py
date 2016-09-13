@@ -23,7 +23,7 @@ class PID_Cal:
     plt.ion()
 
     def __init__(self, startKp, startKi, startKd):
-        self.bbox_props = dict(boxstyle="Square,pad=0.3", fc="white", ec="black", lw=1)
+        self.bbox_props = dict(boxstyle="Square, pad=0.3", fc="white", ec="black", lw=1)
         x_w = 0.75 # Default element width
 
         self.output = 0
@@ -97,9 +97,7 @@ class PID_Cal:
         verticalalignment='bottom',
         bbox=self.bbox_props)
 
-
     def plotSystemTime(self, cv, t):
-
         self.output = cv
         self.pid_points.set_xdata(np.append(self.pid_points.get_xdata(), t))
         self.pid_points.set_ydata(np.append(self.pid_points.get_ydata(), self.output))
@@ -108,7 +106,6 @@ class PID_Cal:
         self.fig.canvas.draw_idle()
         self.fig.canvas.flush_events()
     
-
     def runCal(self):
         plt.show()
         print("Running calibration tool...")
@@ -123,4 +120,3 @@ class PID_Cal:
         self.plotSystemTime(pwm_value*100.0, self.timestep)
         self.timestep +=1
         return self.Kp, self.Ki, self.Kd
-                

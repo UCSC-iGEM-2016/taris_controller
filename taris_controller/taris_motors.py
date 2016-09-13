@@ -56,28 +56,56 @@ class Taris_Motors():
         self.naohPWM     = naohPWM
         self.heaterPWM   = heaterPWM
         
-        self.inPIN       = 21        # inflow motor default pin:    21
-        self.outPIN      = 22        # outflow motor default pin:   22
+        self.inPIN       = 21        # Inflow motor default pin:    21
+        self.outPIN      = 22        # Outflow motor default pin:   22
         self.naohPIN     = 23        # NaOH motor default pin:      23
-        self.heaterPIN   = 24        # heating element default pin: 24
+        self.heaterPIN   = 17        # Heating element default pin: 17
 
+        # PID Function Variables
         self.current_val      = 0.0
         self.end_val          = 0.0
         self.sample_time      = 0.0
         self.integral_prev    = 0.0
         self.error_prev       = 0.0
-        
         self.Kp = Kp
-        self.Kd = Kd
         self.Ki = Ki
+        self.Kd = Kd
+
+        # PI pH Variables
+        self.desired_pH       = 7.0
+        self.current_pH       = 0.0
+        self.pH_Kp            = 0.0
+        self.pH_Ki            = 0.0
+        self.pH_error         = 0.0
+        self.pH_sample_time   = 0.0
+        self.pH_curr_time     = 0.0
+        self.pH_prev_time     = 0.0
+        self.pH_P             = 0.0
+        self.pH_I             = 0.0
+        self.pH_I_MAX         = 0.0
+        self.pH_I_MIN         = 0.0
+
+        # PI Temperature Variables
+        self.desired_temp     = 24.0 # Celsius
+        self.current_temp     = 0.0
+        self.temp_Kp          = 0.0
+        self.temp_Ki          = 0.0
+        self.temp_error       = 0.0
+        self.temp_sample_time = 0.0
+        self.temp_curr_time   = 0.0
+        self.temp_prev_time   = 0.0
+        self.temp_P           = 0.0
+        self.temp_I           = 0.0
+        self.temp_I_MAX       = 0.0
+        self.temp_I_MIN       = 0.0
 
         # initiate pi-blaster with only the four default pins above
-        os.system("sudo ./pi-blaster/pi-blaster --gpio 21,22,23,24,26")
+        os.system("sudo pi-blaster --gpio 17,21,22,23")
 
     def set_PIN_at_PWM(self, PIN, PWM):
         PIN = str(PIN)
         PWM = str(PWM)
-        print("Setting pin " + PIN + " to " + PWM)
+        print("Setting pin " + PIN + " to " + PWM + ".")
         os.system("echo '" + PIN + "=" + PWM + "' > /dev/pi-blaster")
 
     def TEST_set_PIN_at_PWM(self, PIN, PWM):
@@ -91,7 +119,35 @@ class Taris_Motors():
         f.write(PIN + "=" + PWM)
         f.close()
 
-    def PID(self, current_val, end_val, sample_time, integral_prev, error_prev, stype):
+    def PI_Heater(self, input_temp):
+        """
+        """
+
+        if input_temp > self.desired_temp:
+            return 0
+        
+        self.current_temp = input_temp
+        self.current_time = time.time()                           # Get current time
+        if self.previous_time is 0:
+            self.previous_time = self.current_time
+        self.sample_time = self.current_time - self.previous_time # Get sample time
+        self.previous_time = self.current_time
+
+        self.temp_error = (self.current_temp - self.desired_temp)
+        self.integral += (self.error * self.sample_time)
+        self.temp_I = self.temp_Ki * self.integral
+        self.temp_P = self.temp_Kp * self.error
+
+        # Anti-windup solution
+        if self.temp_I > self.temp_I_MAX:
+            self.temp_I = self.temp_I_MAX
+        elif self.temp_I < self.temp_I_MIN:
+            self.temp_I = self.temp_I_MIN
+
+	temp_PI = self.temp_P + self.temp_I
+	return temp_PI
+
+    def PID(self, current_val, end_val, sample_time, integral_prev, error_prev, sensor):
         """
         PID is a feedback control algorithm that determines the output of a system
         input x(t) to stabilize future outputs x(t+n). This allows for regulated
@@ -123,13 +179,12 @@ class Taris_Motors():
             integral_prev = integral
 
             # pH settings
-
-            if stype == "pH":
+            if sensor == "pH":
                 if error_curr <= 0:
                     y = 0
-            # temp settings   
-                    
-            elif stype == "temp":
+
+            # Temperature settings
+            elif sensor == "temp":
                 if error_curr < 0:
                     y = 0
                 elif 10 < error_curr < 20:
@@ -143,7 +198,12 @@ class Taris_Motors():
             scaling_factor = 10.0 # don't burn things down            
             y = y/scaling_factor
                 
-            print(stype + " output: " + str(y) + ", " + str(integral) + " ," + str(error_curr))
+            print(sensor + " output: " + str(y) + ", " + str(integral) + " ," + str(error_curr))
             return (abs(y/100.0), error_prev, integral_prev)
         else:
             return 0
+
+    def Bang_Bang(self, current_val, end_val, sample_time, integral_prev, error_prev, sensor):
+        """
+        """
+        
