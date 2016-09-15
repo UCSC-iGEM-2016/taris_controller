@@ -86,7 +86,6 @@ class Taris_Reactor():
         self.naoh_ads_pin    = naoh_ads_pin
         self.filter_ads_pin  = filter_ads_pin
 
-
         # PID parameters
         self.pwm_frequency   = pwm_frequency
         self.sample_frequency= sample_frequency
@@ -107,8 +106,8 @@ class Taris_Reactor():
         # Instantiate Motor Object
         self.motors          = Motor(self.inflow_PWM, self.outflow_PWM, \
                                      self.naoh_PWM, self.heater_PWM,    \
-                                     self.Kp, self.Ki, self.Kd)
-                                    
+                                     self.Kp, self.Ki, self.Kd, self.pH_def, self.temp_def)
+
         # Motor pins
         self.motor1      = 21
         self.motor2      = 22
@@ -217,6 +216,8 @@ class Taris_Reactor():
                    self.temp_def)
         self.JSON_Handler.post_JSON()
         self.pH_def, self.temp_def = self.JSON_Handler.pull_JSON()
+        set_temp_desired(self.temp_def)
+        set_pH_desired(self.pH_def)
 
     def Sample_Bioreactor(self):
         '''Gets data from bioreactor sensors.'''

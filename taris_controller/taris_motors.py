@@ -50,16 +50,16 @@ import io
 
 class Taris_Motors():
     
-    def __init__(self, inPWM, outPWM, naohPWM, heaterPWM, Kp, Ki, Kd):
+    def __init__(self, inPWM, outPWM, naohPWM, heaterPWM, Kp, Ki, Kd, pH_def, temp_def):
         self.inPWM       = inPWM
         self.outPWM      = outPWM
         self.naohPWM     = naohPWM
         self.heaterPWM   = heaterPWM
         
-        self.inPIN       = 21        # Inflow motor default pin:    21
-        self.outPIN      = 22        # Outflow motor default pin:   22
-        self.naohPIN     = 23        # NaOH motor default pin:      23
-        self.heaterPIN   = 17        # Heating element default pin: 17
+        self.inPIN       = 21         # Inflow motor default pin:    21
+        self.outPIN      = 22         # Outflow motor default pin:   22
+        self.naohPIN     = 23         # NaOH motor default pin:      23
+        self.heaterPIN   = 17         # Heating element default pin: 17
 
         # PID Function Variables
         self.current_val      = 0.0
@@ -71,22 +71,15 @@ class Taris_Motors():
         self.Ki = Ki
         self.Kd = Kd
 
-        # PI pH Variables
-        self.desired_pH       = 7.0
-        self.current_pH       = 0.0
-        self.pH_Kp            = 0.0
-        self.pH_Ki            = 0.0
-        self.pH_error         = 0.0
-        self.pH_sample_time   = 0.0
-        self.pH_curr_time     = 0.0
-        self.pH_prev_time     = 0.0
-        self.pH_P             = 0.0
-        self.pH_I             = 0.0
-        self.pH_I_MAX         = 0.0
-        self.pH_I_MIN         = 0.0
+        # pH Variables
+        self.pH_desired     = pH_def  # the pH you desire <3
+        self.pH_current     =         # the pH that is actually happening >.>
+        self.fluid_volume   = 2.0     # liters of liquid in the bioreactor
+        self.NaOH_molarity  = 0.0001  # grams/liter of NaOH solution to be added
+        self.rate_of_NaOH   = 0.0001  # liters/second (based on each motor)
 
-        # PI Temperature Variables
-        self.desired_temp     = 24.0 # Celsius
+        # Temperature Variables (PI)
+        self.desired_temp     = temp_def # Celsius
         self.current_temp     = 0.0
         self.temp_Kp          = 0.0
         self.temp_Ki          = 0.0
@@ -108,16 +101,25 @@ class Taris_Motors():
         print("Setting pin " + PIN + " to " + PWM + ".")
         os.system("echo '" + PIN + "=" + PWM + "' > /dev/pi-blaster")
 
-    def TEST_set_PIN_at_PWM(self, PIN, PWM):
-        # attempts to write pi-blaster commands to the FIFO file
-        # this is the default method of communication for pi-blaster
-        # not currently used
-        PIN = str(PIN)
-        PWM = str(PWM)
-        file_path = os.path.relpath("/dev/pi-blaster")
-        f = open(file_path,"w")
-        f.write(PIN + "=" + PWM)
-        f.close()
+    def set_volume(self, volume):
+        self.fluid_volume = volume
+        pass
+
+    def set_rate_of_NaOH(self, rate):
+        self.rate_of_NaOH = rate
+        pass
+
+    def set_NaOH_molarity(self, molarity):
+        self.NaOH_molarity = molarity
+        pass
+
+    def set_pH_desired(self, pH):
+        self.pH_desired = pH
+        pass
+
+    def set_temp_desired(self, temp):
+        self.desired_temp = temp
+        pass
 
     def PI_Heater(self, input_temp):
         """
@@ -147,6 +149,32 @@ class Taris_Motors():
 	temp_PI = self.temp_P + self.temp_I
 	return temp_PI
 
+    def pH(self, input_pH):
+        """
+        When run, this function adds NaOH to the bioreactor to adjust pH.
+
+        Designed to be run as a daemon.  Whenever the pH dips 0.1 below the desired
+        pH, this function will calculate the volume of NaOH to be added, and will 
+        run the motor an amount of time long enough to add that amount (and if not 
+        run as a daemon, will pause the entire program).
+
+        Motor rate of NaOH addition and volume must be entered beforehand.
+
+        It is important that this function be given an average of pH values to avoid 
+        spikes and noise.
+
+        It's a good idea to pause after using this function to allow the pH stick
+        to acclimate.
+        """
+
+        moles_of_NaOH = (fluid_volume*(10**(-pH_desired))) - (fluid_volume*(10**(-pH_current)))
+        vol_of_NaOH_to_add = moles_of_NaOH / NaOH_molarity
+        run_motor_for_how_long = rate_of_NaOH / vol_of_NaOH_to_add
+
+        self.set_PIN_at_PWM(self.naohPIN, 0.1) # 0.1 = run at one-tenth motor power
+        time.sleep(run_motor_for_how_long)
+        self.set_PIN_at_PWM(self.naohPIN, 0) # 0 = stop the motor
+
     def PID(self, current_val, end_val, sample_time, integral_prev, error_prev, sensor):
         """
         PID is a feedback control algorithm that determines the output of a system
@@ -160,7 +188,7 @@ class Taris_Motors():
         :param error_prev: previous error value
         :return: system value, previous error, integral error
         """
-        
+
         if current_val != None:
             if integral_prev == None:
                 integral_prev = 0.0
@@ -202,8 +230,3 @@ class Taris_Motors():
             return (abs(y/100.0), error_prev, integral_prev)
         else:
             return 0
-
-    def Bang_Bang(self, current_val, end_val, sample_time, integral_prev, error_prev, sensor):
-        """
-        """
-        
