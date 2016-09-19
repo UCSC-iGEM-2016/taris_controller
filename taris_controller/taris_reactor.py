@@ -156,15 +156,19 @@ class Taris_Reactor():
             7.\tRun PID test.\n>> "))
         if user_selection == '1':
             self.motors.set_PIN_at_PWM(self.motor1, 1.0)
+            self.Update_PWM(self.motor1, 1.0)
             self.Run_PWM()
         elif user_selection == '2':
             self.motors.set_PIN_at_PWM(self.motor2, 1.0)
+            self.Update_PWM(self.motor2, 1.0)
             self.Run_PWM()
         elif user_selection == '3':
             self.motors.set_PIN_at_PWM(self.motor3, 1.0)
+            self.Update_PWM(self.motor3, 1.0)
             self.Run_PWM()
         elif user_selection == '4':
             self.motors.set_PIN_at_PWM(self.motor4, 1.0)
+            self.Update_PWM(self.motor4, 1.0)
             self.Run_PWM()
         elif user_selection == '5':
             self.motors.set_PIN_at_PWM(self.motor1, 0)
@@ -215,9 +219,12 @@ class Taris_Reactor():
                    self.pH_def,      \
                    self.temp_def)
         self.JSON_Handler.post_JSON()
-        self.pH_def, self.temp_def = self.JSON_Handler.pull_JSON()
-        set_temp_desired(self.temp_def)
-        set_pH_desired(self.pH_def)
+        try:
+            self.pH_def, self.temp_def = self.JSON_Handler.pull_JSON()
+        except:
+            pass
+        self.motors.set_temp_desired(self.temp_def)
+        self.motors.set_pH_desired(self.pH_def)
 
     def Sample_Bioreactor(self):
         '''Gets data from bioreactor sensors.'''
@@ -225,17 +232,17 @@ class Taris_Reactor():
         self.Check_Sensors()
         
         # Update PWM
-        self.Query_Motor_PWM()
+        #@ self.Query_Motor_PWM()
         
         # Get motor currents
         self.Query_Motor_Current()
 
     def Run_Bioreactor(self):
         '''Runs the bioreactor sampler at 1Hz.'''
-                # Instantiate PID test jig
-
-        self.cal = CAL(self.Kp, self.Ki, self.Kd)        
-        self.cal.runCal()
+        
+        #@ Instantiate PID test jig
+        #@ self.cal = CAL(self.Kp, self.Ki, self.Kd)        
+        #@ self.cal.runCal()
         
         while self.stop_reactor==False:
             # Get updated values and run control
@@ -243,7 +250,7 @@ class Taris_Reactor():
 
             # Display current values
             self.Display_Status()
-            self.Kp, self.Ki, self.Kd = self.cal.updateCal(self.current_temp, self.heater_PWM)
+            #@ self.Kp, self.Ki, self.Kd = self.cal.updateCal(self.current_temp, self.heater_PWM)
 
             # Update motor PWM
             self.motors.set_PIN_at_PWM(self.motor4, self.heater_PWM)            
@@ -280,6 +287,17 @@ class Taris_Reactor():
                                                 self.sample_time,\
                                                 self.pH_int_prev,\
                                                 self.pH_error_prev, "pH")
+
+    def Update_PWM(self, PIN, PWM):
+        '''Get the new PWM from the motors program.'''
+        if   PIN is 17:
+            self.heater_PWM  = PWM
+        elif PIN is 21:
+            self.inflow_PWM  = PWM
+        elif PIN is 22:
+            self.outflow_PWM = PWM
+        elif PIN is 23:
+            self.naoh_PWM    = PWM
 
     def Query_Motor_Current(self):
         '''Returns the current flowing through each motor by measuring the \

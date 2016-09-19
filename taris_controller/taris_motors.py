@@ -3,6 +3,7 @@
 from __future__ import print_function    # reconciles printing between python2 and python3
 import os
 import io
+import taris_reactor as reactor
 
 # Uses pi-blaster to run a PWM from the raspberry pi pins.
 # Once pi-blaster is installed on the pi, bash commands 
@@ -73,7 +74,7 @@ class Taris_Motors():
 
         # pH Variables
         self.pH_desired     = pH_def  # the pH you desire <3
-        self.pH_current     =         # the pH that is actually happening >.>
+        self.pH_current     = 0.0     # the pH that is actually happening >.>
         self.fluid_volume   = 2.0     # liters of liquid in the bioreactor
         self.NaOH_molarity  = 0.0001  # grams/liter of NaOH solution to be added
         self.rate_of_NaOH   = 0.0001  # liters/second (based on each motor)
