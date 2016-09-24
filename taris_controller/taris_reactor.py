@@ -3,9 +3,10 @@ from taris_adc import Taris_ADC as ADC
 from taris_sensor import Taris_Sensor as Sensor
 from taris_motors import Taris_Motors as Motor
 from taris_json import Taris_JSON as IOX
+from taris_calibrate import PID_Cal as CAL
 import os
 import time
-from taris_calibrate import PID_Cal as CAL
+import threading
 
 class Taris_Reactor():
     '''Holds the object that runs the bioreactor and handles data aggregation. \
@@ -41,7 +42,6 @@ class Taris_Reactor():
         self.adc_gain        = adc_gain
         
         # Network Handler
-        
         self.JSON_Handler = IOX(server_ip, server_post_path, server_pull_path)
         
         #Set RTD Sensor unit and verify
@@ -51,7 +51,7 @@ class Taris_Reactor():
         q = self.temp_sensor.query("S,?\0x0d")
         
         if str(q) == "?S,"+temp_unit:
-            print("Temperature sensor reponse (C, F, or K): " + str(temp_unit))
+            print("Temperature sensor response (C, F, or K): " + str(temp_unit))
         else:
             print("Error setting temperature sensor: " + str(q))
         
@@ -109,14 +109,15 @@ class Taris_Reactor():
                                      self.Kp, self.Ki, self.Kd, self.pH_def, self.temp_def)
 
         # Motor pins
-        self.motor1      = 21
-        self.motor2      = 22
-        self.motor3      = 23
-        self.motor4      = 17
+        self.motor1          = 21
+        self.motor2          = 22
+        self.motor3          = 23
+        self.motor4          = 17
 
         # Control parameters
         self.stop_reactor    = False
         self.time_count      = 0
+        self.heater_on       = 0
         
     def cls(self):
         '''Clears the terminal.'''
@@ -153,7 +154,7 @@ class Taris_Reactor():
             4.\tRun motor 4.\n\
             5.\tTurn all motors off.\n\
             6.\tExit to main menu.\n\
-            7.\tRun PID test.\n>> "))
+            7.\tInsert an aliquot of NaOH.\n>> "))
         if user_selection == '1':
             self.motors.set_PIN_at_PWM(self.motor1, 1.0)
             self.Update_PWM(self.motor1, 1.0)
@@ -179,16 +180,13 @@ class Taris_Reactor():
         elif user_selection == '6':
             print("Goodbye.")
         elif user_selection == '7':
-            self.heater_PWM, self.temp_error_prev, self.temp_int_prev = self.motors.PID(self.current_temp,\
-                                                      self.temp_def,     \
-                                                      self.sample_time,  \
-                                                      self.temp_int_prev,\
-                                                      self.temp_error_prev,\
-                                                      "temp")
+            self.motors.set_PIN_at_PWM(self.motor3, 0.5) # 0.5 = run at one-half motor power
+            time.sleep(0.05)
+            self.motors.set_PIN_at_PWM(self.motor3, 0) # 0 = stop the motor
+            self.Run_PWM()
         else:
             print("Input is incorrect.  Please select a number from the menu... o.o")
             self.Run_PWM()
-
     def Display_Status(self):
         '''Displays relevant information while reactor is running.'''
         self.cls()
@@ -201,11 +199,11 @@ class Taris_Reactor():
             'Filter: '     + str(self.filter_i)         + '\n' +\
             'Des. Temp: '  + str(self.temp_def)         + '\n' +\
             'Des. pH: '    + str(self.pH_def)           + '\n'
-
         print(status_message)
         
         # Make a new JSON and post to the server
-        self.JSON_Handler.make_JSON(self.current_pH,  \
+        try:
+            self.JSON_Handler.make_JSON(self.current_pH,  \
                    self.current_temp,\
                    self.inflow_PWM,  \
                    self.outflow_PWM, \
@@ -218,22 +216,32 @@ class Taris_Reactor():
                    self.filter_i,    \
                    self.pH_def,      \
                    self.temp_def)
-        self.JSON_Handler.post_JSON()
+            self.JSON_Handler.post_JSON()
+        except:
+            pass
         try:
             self.pH_def, self.temp_def = self.JSON_Handler.pull_JSON()
         except:
             pass
         self.motors.set_temp_desired(self.temp_def)
         self.motors.set_pH_desired(self.pH_def)
-
+        
     def Sample_Bioreactor(self):
         '''Gets data from bioreactor sensors.'''
         # Get sensor values
         self.Check_Sensors()
         
-        # Update PWM
-        #@ self.Query_Motor_PWM()
-        
+        # Initialize the heater
+        upper_threshold = self.temp_def + 0.5
+        lower_threshold = self.temp_def - 0.5
+        if self.current_temp > upper_threshold:
+            self.heater_PWM = 0
+            print("\nHeater is OFF.")
+        if self.current_temp < lower_threshold:
+            self.heater_PWM = 1
+            print("\nHeater is ON.")
+        self.motors.set_PIN_at_PWM(self.motor4, self.heater_PWM)
+
         # Get motor currents
         self.Query_Motor_Current()
 
@@ -243,20 +251,23 @@ class Taris_Reactor():
         #@ Instantiate PID test jig
         #@ self.cal = CAL(self.Kp, self.Ki, self.Kd)        
         #@ self.cal.runCal()
-        
-        while self.stop_reactor==False:
-            # Get updated values and run control
-            self.Sample_Bioreactor()
 
-            # Display current values
-            self.Display_Status()
-            #@ self.Kp, self.Ki, self.Kd = self.cal.updateCal(self.current_temp, self.heater_PWM)
+        try:
+            while self.stop_reactor==False:
+                # Get updated values and run control
+                self.Sample_Bioreactor()
 
-            # Update motor PWM
-            self.motors.set_PIN_at_PWM(self.motor4, self.heater_PWM)            
+                # Display current values
+                self.Display_Status()
+                #@ self.Kp, self.Ki, self.Kd = self.cal.updateCal(self.current_temp, self.heater_PWM)
+
+                # Update motor PWM
+                # self.motors.set_PIN_at_PWM(self.motor4, self.heater_PWM)            
+
+                time.sleep(1)
+        except KeyboardInterrupt:
+            pass
             
-            time.sleep(1)
-
     def Check_Sensors(self):
         '''Gets current pH and temp from the EZO pH and RTD sensors.'''
         self.current_pH = self.pH_sensor.getData()

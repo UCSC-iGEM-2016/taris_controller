@@ -100,7 +100,7 @@ def Setup_Bioreactor():
     pwm_frequency          = 75   # Hz
     sample_frequency       = 100  # Hz
     pH_def                 = 7.0
-    temp_def               = 75.0 # Fahrenheit
+    temp_def               = 37.0 # celsius
 
     # Default ADC settings
     i2c_bus                = 1    # 0 on older pi's

@@ -92,6 +92,7 @@ class Taris_Motors():
         self.temp_I           = 0.0
         self.temp_I_MAX       = 0.0
         self.temp_I_MIN       = 0.0
+        self.set_power        = 0.0
 
         # initiate pi-blaster with only the four default pins above
         os.system("sudo pi-blaster --gpio 17,21,22,23")
@@ -122,33 +123,18 @@ class Taris_Motors():
         self.desired_temp = temp
         pass
 
-    def PI_Heater(self, input_temp):
+    def bangbang_heater(self, input_temp):
         """
+        Simple bang-bang hysteresis control of the heating element.
         """
+        upper_threshold = self.desired_temp + 0.5
+        lower_threshold = self.desired_temp - 0.5
 
-        if input_temp > self.desired_temp:
-            return 0
-        
-        self.current_temp = input_temp
-        self.current_time = time.time()                           # Get current time
-        if self.previous_time is 0:
-            self.previous_time = self.current_time
-        self.sample_time = self.current_time - self.previous_time # Get sample time
-        self.previous_time = self.current_time
-
-        self.temp_error = (self.current_temp - self.desired_temp)
-        self.integral += (self.error * self.sample_time)
-        self.temp_I = self.temp_Ki * self.integral
-        self.temp_P = self.temp_Kp * self.error
-
-        # Anti-windup solution
-        if self.temp_I > self.temp_I_MAX:
-            self.temp_I = self.temp_I_MAX
-        elif self.temp_I < self.temp_I_MIN:
-            self.temp_I = self.temp_I_MIN
-
-	temp_PI = self.temp_P + self.temp_I
-	return temp_PI
+        if input_temp > upper_threshold:
+            self.set_power = 0
+        if input_temp < lower_threshold:
+            self.set_power = 1
+	return self.set_power
 
     def pH(self, input_pH):
         """

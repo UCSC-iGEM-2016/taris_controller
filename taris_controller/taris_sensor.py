@@ -70,19 +70,16 @@ class Taris_Sensor():
             time.sleep(self.cal_timeout)
         else:
             time.sleep(self.short_timeout)
-
         return self.read(startbit=start)
-
 
     def verify(self):
         '''Verifies that the sensor is connected, also returns firmware version.'''
         device_ID = self.query("I")
-    
         if device_ID.startswith("?I"):
             print("Connected sensor: " + str(device_ID)[3:])
         else:
             raw_input("EZO not connected: " + device_ID)
-            
+
     def close(self):
         '''Closes the sensor's filestream, not usually required.'''
         self.file_read.close()
@@ -110,7 +107,6 @@ class Taris_Sensor():
         
     def pH_calibrateSensor(self):
         '''Performs pH sensor calibration using included buffers.'''
-        
         
         # Clear previous calibration data
         print("Starting pH sensor calibration...")
@@ -202,8 +198,6 @@ class Taris_Sensor():
             print("Could not clear RTD sensor: " + str(q))
             time.sleep(1)
             return False
-            
-            
         return False
 
     def pH_compensateTemp(self,temp):
@@ -222,8 +216,6 @@ class Taris_Sensor():
             time.sleep(2)
         return False
 
-    
-    
     def lockProtocol(self,command):
         '''Not currently working. Normally used for locking some of the \
         internal parameters (e.g. baud rate for UART mode).'''
@@ -256,15 +248,3 @@ class Taris_Sensor():
             return False
 
         return return_code
-
-    
-
-
-    
-    
-        
-
-        
-
-
-        
