@@ -6,6 +6,7 @@ from taris_json import Taris_JSON as IOX
 from taris_calibrate import PID_Cal as CAL
 import os
 import time
+from time import gmtime, strftime
 import threading
 
 class Taris_Reactor():
@@ -117,7 +118,12 @@ class Taris_Reactor():
         # Control parameters
         self.stop_reactor    = False
         self.time_count      = 0
+        self.pH_counter      = 0
+        self.pH_counter1     = 0
         self.heater_on       = 0
+
+        self.pH_list         = [0,0,0,0,0,0,0,0,0,0]
+        
         
     def cls(self):
         '''Clears the terminal.'''
@@ -227,21 +233,51 @@ class Taris_Reactor():
         self.motors.set_pH_desired(self.pH_def)
         
     def Sample_Bioreactor(self):
-        '''Gets data from bioreactor sensors.'''
+        '''Gets data from bioreactor sensors.  Run this function at 1 Hz.'''
         # Get sensor values
         self.Check_Sensors()
         
         # Initialize the heater
-        upper_threshold = self.temp_def + 0.5
-        lower_threshold = self.temp_def - 0.5
-        if self.current_temp > upper_threshold:
+        # safe-guard in case RTD comes out of water
+        # thermal switch
+        temp_upper_threshold = self.temp_def + 0.05
+        temp_lower_threshold = self.temp_def - 0.05
+        if self.current_temp > temp_upper_threshold:
             self.heater_PWM = 0
-            print("\nHeater is OFF.")
-        if self.current_temp < lower_threshold:
+        if self.current_temp < temp_lower_threshold:
             self.heater_PWM = 1
-            print("\nHeater is ON.")
         self.motors.set_PIN_at_PWM(self.motor4, self.heater_PWM)
+        
+        # Initialize NaOH moderation of pH (add drop every 10-20s until level)
+        self.pH_list[self.pH_counter1] = self.current_pH
+        pH_average = (self.pH_list[0] + \
+                     self.pH_list[1] + \
+                     self.pH_list[2] + \
+                     self.pH_list[3] + \
+                     self.pH_list[4] + \
+                     self.pH_list[5] + \
+                     self.pH_list[6] + \
+                     self.pH_list[7] + \
+                     self.pH_list[8] + \
+                     self.pH_list[9])/10.0
+        self.pH_counter += 1
+        self.pH_counter1 += 1
+        if self.pH_counter1 > 9:
+            self.pH_counter1 = 0
+        pH_lower_threshold = self.pH_def - 0.05
 
+        # if pH goes too low show an error that NaOH is depleted
+        # or motor is stopped
+        
+        if pH_average > pH_lower_threshold:
+            self.pH_counter = 0
+        if pH_average < pH_lower_threshold:
+            if self.pH_counter >= 10:
+                self.pH_counter = 0
+                self.motors.set_PIN_at_PWM(self.motor3, 0.5) # 0.5 = run at one-half motor power
+                time.sleep(0.05)
+                self.motors.set_PIN_at_PWM(self.motor3, 0) # 0 = stop the motor
+        
         # Get motor currents
         self.Query_Motor_Current()
 
@@ -249,10 +285,15 @@ class Taris_Reactor():
         '''Runs the bioreactor sampler at 1Hz.'''
         
         #@ Instantiate PID test jig
-        #@ self.cal = CAL(self.Kp, self.Ki, self.Kd)        
+        #@ self.cal = CAL(self.Kp, self.Ki, self.Kd)
         #@ self.cal.runCal()
 
+        time_counter = 0
+        
         try:
+            file = open("data_Log.txt", "w")
+            file.write(strftime("%a, %d %b %Y %H:%M:%S ", gmtime()) + "\n")
+            file.write("Bioreactor Log of Temp and pH\nLon Blauvelt\nTime(s)   Temp   pH\n\n")
             while self.stop_reactor==False:
                 # Get updated values and run control
                 self.Sample_Bioreactor()
@@ -263,9 +304,11 @@ class Taris_Reactor():
 
                 # Update motor PWM
                 # self.motors.set_PIN_at_PWM(self.motor4, self.heater_PWM)            
-
                 time.sleep(1)
+                file.write(str(time_counter) + " " + str(self.current_temp) + " " + str(self.current_pH) + "\n")
+                time_counter += 1
         except KeyboardInterrupt:
+            file.close()
             pass
             
     def Check_Sensors(self):
