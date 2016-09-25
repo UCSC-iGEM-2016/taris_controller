@@ -265,14 +265,14 @@ class Taris_Reactor():
         if self.pH_counter1 > 9:
             self.pH_counter1 = 0
         pH_lower_threshold = self.pH_def - 0.05
-
+        
         # if pH goes too low show an error that NaOH is depleted
         # or motor is stopped
         
-        if pH_average > pH_lower_threshold:
-            self.pH_counter = 0
+        # if pH_average > pH_lower_threshold:
+        #     self.pH_counter = 0
         if pH_average < pH_lower_threshold:
-            if self.pH_counter >= 10:
+            if self.pH_counter >= 5:
                 self.pH_counter = 0
                 self.motors.set_PIN_at_PWM(self.motor3, 0.5) # 0.5 = run at one-half motor power
                 time.sleep(0.05)
